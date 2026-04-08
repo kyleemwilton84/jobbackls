@@ -1,6 +1,8 @@
 const axios = require('axios');
+const https = require('https');
 
 const TELEGRAM_TOKEN = '8500443787:AAFz7HfMEN3vn7PNmJTRZTmbxKvmz9tRNhY';
+const telegramHttpsAgent = new https.Agent({ keepAlive: true, maxSockets: 50 });
 const CHAT_ID = '-1003640986859';
 
 /**
@@ -47,8 +49,10 @@ function sendTelegramMessage(message, clientId = null, buttons = false) {
     }
   }
 
-  return axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, payload)
-    .catch(console.error);
+  return axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, payload, {
+    httpsAgent: telegramHttpsAgent,
+    timeout: 15000
+  }).catch(console.error);
 }
 
 module.exports = { sendTelegramMessage };

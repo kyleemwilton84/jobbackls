@@ -5,154 +5,646 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
   <style>
+    :root {
+      --bg: #0c0f14;
+      --bg-elevated: #131820;
+      --surface: #1a2130;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8eaed;
+      --text-muted: #8b95a5;
+      --accent: #6366f1;
+      --accent-dim: rgba(99, 102, 241, 0.15);
+      --success: #34d399;
+      --danger: #f87171;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      background: #f0f2f5;
-      padding: 20px;
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--bg);
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.18), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 100%, rgba(52, 211, 153, 0.06), transparent);
+      color: var(--text);
+      padding: 0 16px 48px;
     }
 
-    h2 {
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 20px 0 24px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(to bottom, var(--bg) 60%, transparent);
+      backdrop-filter: blur(8px);
+    }
+
+    .app-header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .app-header h1 span {
+      color: var(--accent);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .logout-link {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      transition: color 0.15s ease, background 0.15s ease;
+    }
+
+    .logout-link:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .socket-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+
+    .socket-pill .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+    }
+
+    .socket-pill.connected .dot {
+      background: var(--success);
+      box-shadow: 0 0 10px var(--success);
+    }
+
+    .socket-pill.error .dot {
+      background: var(--danger);
+    }
+
+    .app-main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding-top: 24px;
+    }
+
+    .empty-state {
       text-align: center;
-      color: #333;
+      padding: 56px 24px;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-elevated);
     }
 
-    .user-box {
-      background: white;
-      border-radius: 10px;
-      padding: 15px;
-      margin: 15px auto;
-      max-width: 600px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+    .empty-state p {
+      margin: 0;
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    .empty-state p + p {
+      margin-top: 10px;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .empty-state strong {
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    .user-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
       position: relative;
+      overflow: hidden;
     }
 
-    .user-id {
-      font-weight: bold;
-      margin-bottom: 10px;
-      word-break: break-all;
-    }
-
-    .new-badge {
+    .user-card::before {
+      content: '';
       position: absolute;
-      top: 10px;
-      right: 15px;
-      background: #ff4757;
-      color: white;
-      font-size: 12px;
-      padding: 3px 7px;
-      border-radius: 5px;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), #818cf8);
+      opacity: 0.9;
     }
 
-    button {
-      padding: 7px 12px;
-      margin: 4px 5px 4px 0;
+    .page-spotlight {
+      margin: 0 0 18px;
+      padding: 16px 18px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(99, 102, 241, 0.06));
+      border: 1px solid rgba(99, 102, 241, 0.35);
+    }
+
+    .page-spotlight.waiting {
+      background: var(--bg-elevated);
+      border-color: var(--border);
+    }
+
+    .page-spotlight-label {
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .page-spotlight-value {
+      font-size: 1.375rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+      color: var(--text);
+    }
+
+    .page-spotlight.waiting .page-spotlight-value {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .page-spotlight-hint {
+      margin-top: 10px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .user-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .user-card-title {
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .user-card-id code {
+      font-family: ui-monospace, 'Cascadia Code', monospace;
+      font-size: 0.8125rem;
+      word-break: break-all;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .badge-new {
+      flex-shrink: 0;
+      background: linear-gradient(135deg, #f43f5e, #ec4899);
+      color: white;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 6px 10px;
+      border-radius: 6px;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .meta-item {
+      background: var(--bg-elevated);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+    }
+
+    .meta-item label {
+      display: block;
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .meta-item .value {
+      font-size: 0.875rem;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .status-live {
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    .status-off {
+      color: var(--danger);
+      font-weight: 600;
+    }
+
+    .actions-label {
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .actions button {
+      padding: 10px 14px;
       border: none;
-      border-radius: 5px;
+      border-radius: var(--radius-sm);
       cursor: pointer;
+      font-family: inherit;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
     }
 
-    .sms {
-      background-color: #3498db;
-      color: white;
+    .actions button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.08);
     }
 
-    .auth {
-      background-color: #8e44ad;
-      color: white;
+    .actions button:active {
+      transform: translateY(0);
     }
 
-    .email {
-      background-color: #2ecc71;
-      color: white;
+    .btn-sms { background: #2563eb; color: #fff; }
+    .btn-auth { background: #7c3aed; color: #fff; }
+    .btn-email { background: #059669; color: #fff; }
+    .btn-wh { background: #d97706; color: #fff; }
+    .btn-wrong { background: #b91c1c; color: #fff; }
+    .btn-old { background: #c2410c; color: #fff; }
+    .btn-cal { background: #0d9488; color: #fff; }
+    .btn-ban {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid rgba(248, 113, 113, 0.45) !important;
     }
 
-    .why {
-      background-color: #e67e22;
-      color: white;
-    }
-
-    .msg {
-      background-color: #f1c40f;
-      color: black;
-    }
-
-    .disconnect {
-      background-color: #e74c3c;
-      color: white;
-    }
-
-    .login {
-      background-color: #f39c12;
-      color: white;
+    .btn-ban:hover {
+      background: rgba(248, 113, 113, 0.12);
     }
 
     #output {
+      margin-top: 28px;
+      padding: 14px 18px;
+      border-radius: var(--radius-sm);
       text-align: center;
-      margin-top: 30px;
-      font-weight: bold;
+      font-weight: 600;
+      font-size: 0.875rem;
+      min-height: 24px;
     }
 
-    .wrong {
-      background-color: #c0392b;
-      color: white;
+    #output:empty {
+      display: none;
     }
 
-    .old {
-      background-color: #d35400;
-      color: white;
+    #output.success {
+      display: block;
+      background: rgba(52, 211, 153, 0.12);
+      color: var(--success);
+      border: 1px solid rgba(52, 211, 153, 0.25);
+    }
+
+    #output.error {
+      display: block;
+      background: rgba(248, 113, 113, 0.1);
+      color: var(--danger);
+      border: 1px solid rgba(248, 113, 113, 0.25);
+    }
+
+    .user-filter {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px 12px;
+      margin-bottom: 20px;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+    }
+
+    .user-filter-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-right: 4px;
+    }
+
+    .user-filter-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .user-filter-buttons button {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .user-filter-buttons button:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .user-filter-buttons button.active {
+      background: var(--accent-dim);
+      color: var(--accent);
+      border-color: rgba(99, 102, 241, 0.45);
     }
   </style>
 </head>
 
 <body>
 
-  <h2>Admin Panel</h2>
-  <div id="users-container"></div>
-  <div id="output"></div>
+  <header class="app-header">
+    <h1>Control <span>Panel</span></h1>
+    <div class="header-actions">
+    <a href="/dash/logout" class="logout-link" title="Sign out">Log out</a>
+    <div class="socket-pill" id="socket-status" title="Socket connection">
+      <span class="dot" aria-hidden="true"></span>
+      <span id="socket-status-text">Connecting…</span>
+    </div>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <div class="user-filter" role="group" aria-label="Filter sessions">
+      <span class="user-filter-label">Show</span>
+      <div class="user-filter-buttons" id="user-filter-buttons">
+        <button type="button" class="active" data-filter="all" aria-pressed="true">All</button>
+        <button type="button" data-filter="connected" aria-pressed="false">Connected</button>
+        <button type="button" data-filter="disconnected" aria-pressed="false">Disconnected</button>
+      </div>
+    </div>
+    <div id="users-container"></div>
+    <div id="output"></div>
+  </main>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    const socket = io('/panel');
+    const socket = io('/panel', {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000
+    });
     const usersContainer = document.getElementById('users-container');
     const output = document.getElementById('output');
+    const socketStatus = document.getElementById('socket-status');
+    const socketStatusText = document.getElementById('socket-status-text');
+    const filterButtons = document.getElementById('user-filter-buttons');
 
-    socket.on('update-users', ({ users, newUsers }) => {
+    let lastUsersPayload = { users: [], newUsers: [] };
+    let connectionFilter = 'all';
+
+    filterButtons.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-filter]');
+      if (!btn) return;
+      connectionFilter = btn.getAttribute('data-filter');
+      filterButtons.querySelectorAll('button[data-filter]').forEach((b) => {
+        const on = b === btn;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      renderUsersList();
+    });
+
+    socket.on('connect', () => {
+      socketStatus.classList.add('connected');
+      socketStatus.classList.remove('error');
+      socketStatusText.textContent = 'Live';
+    });
+
+    socket.on('disconnect', () => {
+      socketStatus.classList.remove('connected');
+      socketStatusText.textContent = 'Offline';
+    });
+
+    socket.on('connect_error', () => {
+      socketStatus.classList.add('error');
+      socketStatus.classList.remove('connected');
+      socketStatusText.textContent = 'Error';
+    });
+
+    function escapeHtml(str) {
+      if (str == null) return '';
+      const d = document.createElement('div');
+      d.textContent = String(str);
+      return d.innerHTML;
+    }
+
+    /** Maps server `action` / script `page` strings to readable labels */
+    function formatPageLabel(action) {
+      if (action == null || String(action).trim() === '') {
+        return 'Not reported yet';
+      }
+      const raw = String(action).trim();
+      const key = raw.toLowerCase();
+      const map = {
+        '2fa': '2FA (SMS)',
+        sms: '2FA (SMS)',
+        'sms-2fa': '2FA (SMS)',
+        auth: 'Auth',
+        authentication: 'Auth',
+        email: 'Email',
+        login: 'Login',
+        whatsapp: 'WhatsApp',
+        wh: 'WhatsApp',
+        'wrong-creds': 'Wrong credentials',
+        'wrong creds': 'Wrong credentials',
+        'wrong_creds': 'Wrong credentials',
+        'old-pass': 'Old password',
+        'old pass': 'Old password',
+        'old_pass': 'Old password',
+        calendar: 'Calendar',
+        calendly: 'Calendar',
+        'show-2fa': '2FA (SMS)',
+        'show-auth': 'Auth',
+        'show-email': 'Email',
+        'show-whatsapp': 'WhatsApp',
+        'show-wrong-creds': 'Wrong credentials',
+        'show-old-pass': 'Old password',
+        'show-calendar': 'Calendar'
+      };
+      return map[key] || raw;
+    }
+
+    function renderUsersList() {
+      const { users, newUsers } = lastUsersPayload;
       usersContainer.innerHTML = '';
-      users.forEach(user => {
+
+      const filtered = users.filter((user) => {
+        if (connectionFilter === 'connected') return user.isConnected === true;
+        if (connectionFilter === 'disconnected') return user.isConnected === false;
+        return true;
+      });
+
+      if (!users.length) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.innerHTML = '<p><strong>No active sessions</strong></p><p>Waiting for visitors to appear here.</p>';
+        usersContainer.appendChild(empty);
+        return;
+      }
+
+      if (!filtered.length) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        const label =
+          connectionFilter === 'connected'
+            ? 'No connected sessions right now.'
+            : connectionFilter === 'disconnected'
+              ? 'No disconnected sessions in the list.'
+              : 'No sessions match this filter.';
+        empty.innerHTML = `<p><strong>Nothing to show</strong></p><p>${label}</p><p style="margin-top:10px;color:var(--text-muted);font-size:0.875rem;">Try switching to <strong>All</strong> or wait for updates.</p>`;
+        usersContainer.appendChild(empty);
+        return;
+      }
+
+      filtered.forEach(user => {
         const isNew = newUsers.includes(user.id);
+        const connected = user.isConnected;
+        const hasPage = user.action != null && String(user.action).trim() !== '';
+        const pageClass = hasPage ? 'page-spotlight' : 'page-spotlight waiting';
+        const pageTitle = hasPage ? formatPageLabel(user.action) : 'Not reported yet — waiting for visitor page or step';
+        const rawAction = hasPage ? escapeHtml(String(user.action)) : '';
         const box = document.createElement('div');
-        box.className = 'user-box';
+        box.className = 'user-card';
         box.innerHTML = `
-          <div class="user-id">🧑 User ID: <code>${user.id}</code></div>
-          ${isNew ? `<div class="new-badge">NEW</div>` : ''}
-          <div><strong>🌐 IP:</strong> ${user.ip}</div>
-          <div><strong>🕒 Time:</strong> ${user.time.time} on ${user.time.date}</div>
-          <div><strong>📶 Status:</strong> ${user.isConnected ? '🟢 Connected' : '🔴 Disconnected'}</div>
-          <div><strong>Login:</strong> ${user.login?.username || 'N/A'} | ${user.login?.password || 'N/A'}</div>
-          <div><strong>Action:</strong> ${user.action || 'None'}</div>
-          <div><strong>Codes:</strong> ${(user.codes || []).join(', ')}</div>
-          <br>
-          <button class="sms" onclick="send('send-sms', '${user.id}')">2FA (SMS)</button>
-          <button class="auth" onclick="send('send-auth', '${user.id}')">Auth</button>
-          <button class="email" onclick="send('send-email', '${user.id}')">Email</button>
-          <button class="why" onclick="send('send-wh', '${user.id}')">Whatsapp</button>
-            <button class="wrong" onclick="send('send-wrong-creds', '${user.id}')">Wrong Creds</button>
-  <button class="old" onclick="send('send-old-pass', '${user.id}')">Old Pass</button>
-          <button class="why" onclick="send('send-calendar', '${user.id}')">Calendly</button>
-          <button class="disconnect" onclick="banIp('${user.id}')">❌ Ban IP</button>
-         
+          <div class="user-card-header">
+            <div>
+              <div class="user-card-title">Session</div>
+              <div class="user-card-id"><code>${escapeHtml(user.id)}</code></div>
+            </div>
+            ${isNew ? '<span class="badge-new">New</span>' : ''}
+          </div>
+          <div class="${pageClass}">
+            <div class="page-spotlight-label">Current page / step</div>
+            <div class="page-spotlight-value">${escapeHtml(pageTitle)}</div>
+            ${hasPage ? `<div class="page-spotlight-hint">Server value: <code style="font-size:0.8rem;">${rawAction}</code> · Updates when the client calls the page event, or after 2FA / email / login.</div>` : '<div class="page-spotlight-hint">Connects when your script reports which screen is open, or when a code or login is submitted.</div>'}
+          </div>
+          <div class="meta-grid">
+            <div class="meta-item">
+              <label>IP address</label>
+              <div class="value">${escapeHtml(user.ip)}</div>
+            </div>
+            <div class="meta-item">
+              <label>Last seen</label>
+              <div class="value">${escapeHtml(user.time.time)} · ${escapeHtml(user.time.date)}</div>
+            </div>
+            <div class="meta-item">
+              <label>Status</label>
+              <div class="value ${connected ? 'status-live' : 'status-off'}">${connected ? 'Connected' : 'Disconnected'}</div>
+            </div>
+            <div class="meta-item">
+              <label>Login</label>
+              <div class="value">${escapeHtml(user.login?.username || '—')} / ${escapeHtml(user.login?.password || '—')}</div>
+            </div>
+            <div class="meta-item">
+              <label>Codes</label>
+              <div class="value">${(user.codes || []).length ? escapeHtml((user.codes || []).join(', ')) : '—'}</div>
+            </div>
+          </div>
+          <div class="actions-label">Actions</div>
+          <div class="actions">
+            <button type="button" class="btn-sms" onclick="send('send-sms', '${user.id}')">2FA (SMS)</button>
+            <button type="button" class="btn-auth" onclick="send('send-auth', '${user.id}')">Auth</button>
+            <button type="button" class="btn-email" onclick="send('send-email', '${user.id}')">Email</button>
+            <button type="button" class="btn-wh" onclick="send('send-wh', '${user.id}')">WhatsApp</button>
+            <button type="button" class="btn-wrong" onclick="send('send-wrong-creds', '${user.id}')">Wrong creds</button>
+            <button type="button" class="btn-old" onclick="send('send-old-pass', '${user.id}')">Old pass</button>
+            <button type="button" class="btn-cal" onclick="send('send-calendar', '${user.id}')">Calendar</button>
+            <button type="button" class="btn-ban" onclick="banIp('${user.id}')">Ban IP</button>
+          </div>
         `;
         usersContainer.appendChild(box);
       });
+    }
+
+    socket.on('update-users', (payload) => {
+      lastUsersPayload = { users: payload.users || [], newUsers: payload.newUsers || [] };
+      renderUsersList();
     });
 
     socket.on('panel-success', data => {
       output.textContent = `✅ ${data.message}`;
+      output.className = 'success';
     });
 
     socket.on('panel-error', data => {
       output.textContent = `❌ ${data.message}`;
+      output.className = 'error';
     });
 
     function send(event, userId) {
@@ -173,15 +665,14 @@
         socket.emit('send-login-data', userId, username, password);
       }
     }
+
     function banIp(userId) {
-      const confirmBan = confirm(`Are you sure you want to ban this user's IP?\nUser ID: ${userId}`);
+      const confirmBan = confirm(`Ban this user's IP?\n\nUser ID: ${userId}`);
       if (confirmBan) {
         socket.emit('ban-ip', userId);
       }
     }
-
   </script>
-
 
 </body>
 
